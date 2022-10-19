@@ -5,11 +5,12 @@ import copy
 import os
 os.environ["CUDA_VISIBLE_DEVICES"]='3'
 from transformers import AutoTokenizer, T5ForConditionalGeneration
-from utils.fixModeloutput import E_trans_to_C
+from utils.fixModeloutput import E_trans_to_C,cut_s
 import torch
 from loguru import logger
 import time
 import json
+
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -162,6 +163,21 @@ def get_errors(corrected_text, origin_text):
     corrected_text = E_trans_to_C(corrected_text)
     return corrected_text
 
+def process(loglist):
+    '''
+    使用现有模型对log的source进行预测，比对T5预测结果和api预测结果
+    注意：对比的时候最好去除掉空格fixed中的空格再比对，因为T5会删掉空格，可以使用cut_s方法去删空格
+    
+    一共会有如下几种情况
+    1.api认为正确，T5认为正确->source归为一类保存为logRightSentence_{log日期}.txt
+    2.api认为正确，T5认为错误->source和fixed构成训练用的数据集保存为logTrain_{log日期}.json(数据集格式参考以前的训练格式)
+    3.api认为错误，T5认为正确->source和fixed构成训练用的数据集保存为logTrain_{log日期}.json(数据集格式参考以前的训练格式)
+    4.api认为错误，T5认为错误,且修改一致->fixed归为一类保存为logRightSentence_{log日期}.txt
+    5.api认为错误，T5认为错误,修改并不一致->source和fixed构成训练用的数据集保存为logTrain_{log日期}.json(数据集格式参考以前的训练格式)
+
+    将5种情况的对应数量统计一下,计算每一种情况的占比，把第五种情况的例子也统计下来（包括source，fixed，T5_pred）,把这三项保存为一个log_eval_{log日期}.tsv
+
+    '''
 
 
 if __name__== '__main__':
